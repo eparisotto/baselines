@@ -60,6 +60,11 @@ class DummyVecEnv(VecEnv):
             obs = self.envs[e].reset()
             self._save_obs(e, obs)
         return self._obs_from_buf()
+    
+    def seed(self, seeds):
+        assert len(seeds) == self.num_envs
+        for e in range(self.num_envs):
+            self.envs[e].seed(seeds[e])
 
     def _save_obs(self, e, obs):
         for k in self.keys:

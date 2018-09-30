@@ -10,8 +10,6 @@ def worker(remote, parent_remote, env_fn_wrapper):
             cmd, data = remote.recv()
             if cmd == 'step':
                 ob, reward, done, info = env.step(data)
-                if done:
-                    ob = env.reset()
                 remote.send((ob, reward, done, info))
             elif cmd == 'reset':
                 ob = env.reset()
@@ -23,6 +21,11 @@ def worker(remote, parent_remote, env_fn_wrapper):
                 break
             elif cmd == 'get_spaces':
                 remote.send((env.observation_space, env.action_space))
+            elif cmd == 'seed':
+                env.seed(data)
+                remote.send(None)
+            elif cmd == 'get_maze_size':
+                remote.send((env.maze_size))
             else:
                 raise NotImplementedError
     except KeyboardInterrupt:
@@ -59,6 +62,13 @@ class SubprocVecEnv(VecEnv):
         self.viewer = None
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
 
+    def seed(self, seeds):
+        for remote, seed in zip(self.remotes, seeds):
+            remote.send(('seed', seed))
+        self.waiting = True
+        _ = [remote.recv() for remote in self.remotes]
+        self.waiting = False
+
     def step_async(self, actions):
         self._assert_not_closed()
         for remote, action in zip(self.remotes, actions):
@@ -71,6 +81,15 @@ class SubprocVecEnv(VecEnv):
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
+    
+    def get_maze_sizes(self):
+        self._assert_not_closed()
+        for remote in self.remotes:
+            remote.send(('get_maze_size', None))
+        self.waiting = True
+        results = np.stack([remote.recv() for remote in self.remotes])
+        self.waiting = False
+        return results
 
     def reset(self):
         self._assert_not_closed()
