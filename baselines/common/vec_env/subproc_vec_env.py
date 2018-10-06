@@ -12,8 +12,8 @@ def worker(remote, parent_remote, env_fn_wrapper):
                 ob, reward, done, info = env.step(data)
                 remote.send((ob, reward, done, info))
             elif cmd == 'reset':
-                ob = env.reset()
-                remote.send(ob)
+                ob, info = env.reset()
+                remote.send((ob, info))
             elif cmd == 'render':
                 remote.send(env.render(mode='rgb_array'))
             elif cmd == 'close':
@@ -95,7 +95,10 @@ class SubprocVecEnv(VecEnv):
         self._assert_not_closed()
         for remote in self.remotes:
             remote.send(('reset', None))
-        return np.stack([remote.recv() for remote in self.remotes])
+        self.waiting = True
+        results = [remote.recv() for remote in self.remotes]
+        obs, info = zip(*results)
+        return np.stack(obs), info
 
     def close_extras(self):
         self.closed = True
