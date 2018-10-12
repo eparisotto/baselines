@@ -23,8 +23,8 @@ class DummyVecEnv(VecEnv):
 
         self.keys, shapes, dtypes = obs_space_info(obs_space)
         self.buf_obs = { k: np.zeros((self.num_envs,) + tuple(shapes[k]), dtype=dtypes[k]) for k in self.keys }
-        self.buf_dones = np.zeros((self.num_envs,), dtype=np.bool)
-        self.buf_rews  = np.zeros((self.num_envs,), dtype=np.float32)
+        self.buf_dones = [None for _ in range(self.num_envs)]
+        self.buf_rews  = [None for _ in range(self.num_envs)]
         self.buf_infos = [{} for _ in range(self.num_envs)]
         self.actions = None
 
@@ -45,7 +45,7 @@ class DummyVecEnv(VecEnv):
     def step_wait(self):
         for e in range(self.num_envs):
             action = self.actions[e]
-            if isinstance(self.envs[e].action_space, spaces.Discrete):
+            if isinstance(self.envs[e].action_space, spaces.Discrete) and type(action) in [int, str]:
                 action = int(action)
 
             obs, self.buf_rews[e], self.buf_dones[e], self.buf_infos[e] = self.envs[e].step(action)
