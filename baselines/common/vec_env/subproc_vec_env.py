@@ -26,6 +26,8 @@ def worker(remote, parent_remote, env_fn_wrapper):
                 remote.send(None)
             elif cmd == 'get_maze_size':
                 remote.send((env.maze_size))
+            elif cmd == 'get_indicator_color':
+                remote.send(env.indicator_color)
             else:
                 raise NotImplementedError
     except KeyboardInterrupt:
@@ -81,11 +83,20 @@ class SubprocVecEnv(VecEnv):
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
-    
+
     def get_maze_sizes(self):
         self._assert_not_closed()
         for remote in self.remotes:
             remote.send(('get_maze_size', None))
+        self.waiting = True
+        results = np.stack([remote.recv() for remote in self.remotes])
+        self.waiting = False
+        return results
+
+    def get_indicator_color(self):
+        self._assert_not_closed()
+        for remote in self.remotes:
+            remote.send(('get_indicator_color', None))
         self.waiting = True
         results = np.stack([remote.recv() for remote in self.remotes])
         self.waiting = False
