@@ -27,7 +27,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
             elif cmd == 'get_maze_size':
                 remote.send((env.maze_size))
             elif cmd == 'get_indicator_color':
-                remote.send(env.env.indicator_color)
+                remote.send(env.env.env.indicator_color)
             else:
                 raise NotImplementedError
     except KeyboardInterrupt:
