@@ -104,10 +104,13 @@ class SubprocVecEnv(VecEnv):
 
     def reset(self):
         self._assert_not_closed()
+        # Do resets synchronously...
+        results = []
+        self.waiting = True
         for remote in self.remotes:
             remote.send(('reset', None))
-        self.waiting = True
-        results = [remote.recv() for remote in self.remotes]
+            results.append(remote.recv())
+        #results = [remote.recv() for remote in self.remotes]
         obs, info = zip(*results)
         return np.stack(obs), info
 
